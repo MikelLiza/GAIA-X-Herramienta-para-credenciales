@@ -1,5 +1,6 @@
 import * as jose from "jose";
 import fs from "node:fs/promises";
+import fetch from "node-fetch"; 
 import { getConfig } from "./config.js";
 import {
   ALGORITHM_RSASSA_PSS,
@@ -36,7 +37,7 @@ export async function writeDIDFile() {
         publicKeyJwk,
       },
     ],
-    assertionMethod: [`${config.didWebId}`],
+    assertionMethod: [`${config.didWebId}#X509-JWK2020`],
   };
 
   await writeFile(config.pathDID, did);
@@ -44,36 +45,40 @@ export async function writeDIDFile() {
 
 export async function buildParticipantVC() {
   const config = getConfig();
-  const issuanceDate = new Date().toISOString();
-
+  const validFrom = new Date().toISOString();
+  const validUntil = new Date(Date.now() + (86400 * 1000 * 365)).toISOString();
+  //Cuenta un año desde ahora, no cuenta bisiestos
   const doc = {
     "@context": [
       "https://www.w3.org/2018/credentials/v1",
       "https://w3id.org/security/suites/jws-2020/v1",
       "https://registry.lab.gaia-x.eu/development/api/trusted-shape-registry/v1/shapes/jsonld/trustframework#",
-      "https://schema.org/version/latest/schemaorg-current-https.jsonld",
     ],
     type: ["VerifiableCredential"],
     id: config.urlParticipant,
     issuer: config.didWebId,
-    issuanceDate: issuanceDate,
+    validFrom: validFrom,
+    validUntil: validUntil,
     credentialSubject: {
+      id: config.officialUrlParticipant,
       type: "gx:LegalParticipant",
       "gx:legalName": config.legalName,
       "gx:legalRegistrationNumber": {
-        id: config.urlLRN,
+        id: config.subjectIdLRN,
       },
       "gx:headquarterAddress": {
+        "gx:streetAddress": config.streetAddress,
+        "gx:postalCode": config.postalCode,
+        "gx:locality": config.locality,
         "gx:countrySubdivisionCode": config.countrySubdivisionCode,
       },
       "gx:legalAddress": {
+        "gx:streetAddress": config.streetAddress,
+        "gx:postalCode": config.postalCode,
+        "gx:locality": config.locality,
         "gx:countrySubdivisionCode": config.countrySubdivisionCode,
       },
-      "gx-terms-and-conditions:gaiaxTermsAndConditions":
-        config.urlTermsConditions,
-      id: config.urlParticipant,
-      "schema:description":
-        "This field demonstrates the possibility of using additional ontologies to add fields that are not explicitly included in the Trust Framework specification.",
+      
     },
   };
 
@@ -87,39 +92,42 @@ export async function buildParticipantVC() {
 
 export async function buildLegalRegistrationNumberVC() {
   const config = getConfig();
-  const issuanceDate = new Date().toISOString();
-
-  const doc = {
+  const requestBody = {
     "@context": [
-      "https://www.w3.org/2018/credentials/v1",
-      "https://w3id.org/security/suites/jws-2020/v1",
+      "https://registry.lab.gaia-x.eu/development/api/trusted-shape-registry/v1/shapes/jsonld/participant"
     ],
-    type: "VerifiableCredential",
-    id: config.urlLRN,
-    issuer: config.didWebId,
-    issuanceDate: issuanceDate,
-    credentialSubject: {
-      id: config.urlLRN,
-      "@context":
-        "https://registry.lab.gaia-x.eu/development/api/trusted-shape-registry/v1/shapes/jsonld/trustframework#",
-      type: "gx:legalRegistrationNumber",
-      "gx:vatID": config.vatID,
-      "gx:vatID-countryCode": config.countryCode,
-    },
+    type: "gx:legalRegistrationNumber",
+    id: config.subjectIdLRN,
+    "gx:vatID": config.vatID,
   };
 
-  const proof = await createProof(doc);
-  Object.assign(doc, { proof });
+  const apiBase = "https://registrationnumber.notary.lab.gaia-x.eu/v1-staging/registrationNumberVC";
+  const vcid = config.urlLRN;     // ← URL pública del VC
+  const url = `${apiBase}?vcid=${encodeURIComponent(vcid)}`;
 
-  await writeFile(config.pathLRN, doc);
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
 
-  return doc;
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Notary API error (${response.status}): ${errorText}`);
+  }
+
+  const vc = await response.json();
+  await writeFile(config.pathLRN, vc);
+  return vc;
 }
 
 export async function buildTermsConditionsVC() {
   const config = getConfig();
-  const issuanceDate = new Date().toISOString();
-
+  const validFrom = new Date().toISOString();
+  const validUntil = new Date(Date.now() + (86400 * 1000 * 365)).toISOString();
   const termsAndConditions =
     "The PARTICIPANT signing the Self-Description agrees as follows:\n- " +
     "to update its descriptions about any changes, " +
@@ -138,15 +146,16 @@ export async function buildTermsConditionsVC() {
       "https://w3id.org/security/suites/jws-2020/v1",
       "https://registry.lab.gaia-x.eu/development/api/trusted-shape-registry/v1/shapes/jsonld/trustframework#",
     ],
-    type: "VerifiableCredential",
+    type: ["VerifiableCredential"],
     id: config.urlTermsConditions,
     issuer: config.didWebId,
-    issuanceDate: issuanceDate,
+    validFrom: validFrom,
+    validUntil: validUntil,
     credentialSubject: {
       "@context":
         "https://registry.lab.gaia-x.eu/development/api/trusted-shape-registry/v1/shapes/jsonld/trustframework#",
       type: "gx:GaiaXTermsAndConditions",
-      id: config.urlTermsConditions,
+      id: config.subjectIdTermsConditions,
       "gx:termsAndConditions": termsAndConditions,
     },
   };

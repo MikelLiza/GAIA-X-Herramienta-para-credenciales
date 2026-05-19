@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import axios from "axios";
 import { promises as fs } from "fs";
 import chalk from "chalk";
@@ -162,7 +163,7 @@ async function actionVP() {
     await fs.readFile(instVirtResourceWritePath, "utf-8")
   );
 
-  const verifiableCredentials = [vcParticipant, vcLRN, vcTC, vcSO];
+  const verifiableCredentials = [vcParticipant, vcLRN, vcTC, /* vcSO */];
 
   const vcCompliance = await signCredentials({
     verifiableCredentials,
@@ -172,8 +173,8 @@ async function actionVP() {
     verifiableCredentials: [
       ...verifiableCredentials,
       vcCompliance,
-      vcVR,
-      vcIVR,
+      //vcVR,
+      //vcIVR,
     ],
   });
 

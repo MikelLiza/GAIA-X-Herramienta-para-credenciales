@@ -17,7 +17,8 @@ export async function buildOpenAPIResources({
   license = LICENSE_EUPL12,
 }) {
   const issuanceDate = new Date().toISOString();
-
+  const validFrom = new Date().toISOString();
+  const validUntil = new Date(Date.now() + (86400 * 1000 * 365)).toISOString();
   const context = [
     "https://www.w3.org/2018/credentials/v1",
     "https://w3id.org/security/suites/jws-2020/v1",
@@ -29,7 +30,8 @@ export async function buildOpenAPIResources({
     type: "VerifiableCredential",
     id: virtResourceUrl,
     issuer: didIssuer,
-    issuanceDate: issuanceDate,
+    validFrom: validFrom,
+    validUntil: validUntil,
     credentialSubject: {
       id: virtResourceUrl,
       type: "gx:VirtualResource",
@@ -103,7 +105,8 @@ export async function buildServiceOffering({
   aggregatedResourceUrls = undefined,
 }) {
   const issuanceDate = new Date().toISOString();
-
+  const validFrom = issuanceDate;
+  const validUntil = new Date(Date.now() + (86400 * 1000 * 365)).toISOString();
   if (!termsConditionsHash) {
     const tcRes = await fs.readFile(termsConditionsPath, "utf-8");
     termsConditionsHash = sha256(tcRes);
@@ -118,7 +121,8 @@ export async function buildServiceOffering({
     type: "VerifiableCredential",
     id: serviceOfferingUrl,
     issuer: didIssuer,
-    issuanceDate: issuanceDate,
+    validFrom: validFrom,
+    validUntil: validUntil,
     credentialSubject: {
       id: serviceOfferingUrl,
       type: "gx:ServiceOffering",

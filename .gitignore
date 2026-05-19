@@ -2,11 +2,26 @@
 #######
 
 certs
+*.pem
+*.key
+*.crt
+
 htdocs
 *.tar
+/htdocs/*.json
+/did.json
+
 
 ## Node
 #######
+
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea
+
+docker-compose.override.yml
 
 # Logs
 logs
@@ -47,6 +62,7 @@ bower_components
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
+bin/
 
 # Dependency directories
 node_modules/

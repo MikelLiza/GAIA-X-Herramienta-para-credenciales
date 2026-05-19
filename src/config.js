@@ -9,6 +9,9 @@ export function getConfig() {
     countryCode: process.env.COUNTRY_CODE,
     countrySubdivisionCode: process.env.COUNTRY_SUBDIVISION_CODE,
     vatID: process.env.VAT_ID,
+    streetAddress: process.env.STREET_ADDRESS,
+    postalCode: process.env.POSTAL_CODE,
+    locality: process.env.LOCALITY,
     didWebId: process.env.DID_WEB_ID,
     baseUrl: process.env.BASE_URL,
     fileX5U: process.env.FILENAME_X5U,
@@ -23,6 +26,7 @@ export function getConfig() {
     pathCertificate: process.env.PATH_CERTIFICATE,
     pathPrivateKey: process.env.PATH_PRIVATE_KEY,
     openAPISpec: process.env.RESOURCE_OPENAPI_SPEC,
+    officialUrlParticipant: process.env.URL_OFFICIAL_PARTICIPANT,
   };
 
   const schemaSpec = Object.fromEntries(
@@ -33,6 +37,9 @@ export function getConfig() {
   envSchema.validateSync(envConfig);
 
   const config = Object.assign(envConfig, {
+    subjectIdLRN: `${envConfig.officialUrlParticipant}#lrn`,
+    subjectIdTermsConditions: `${envConfig.officialUrlParticipant}#tandc`,
+    
     urlParticipant: joinUrl(envConfig.baseUrl, envConfig.fileParticipant),
     urlLRN: joinUrl(envConfig.baseUrl, envConfig.fileLRN),
     urlX5U: joinUrl(envConfig.baseUrl, envConfig.fileX5U),
