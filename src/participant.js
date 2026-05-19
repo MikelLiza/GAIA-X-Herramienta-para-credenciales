@@ -1,6 +1,5 @@
 import * as jose from "jose";
 import fs from "node:fs/promises";
-import fetch from "node-fetch"; 
 import { getConfig } from "./config.js";
 import {
   ALGORITHM_RSASSA_PSS,
@@ -47,7 +46,7 @@ export async function buildParticipantVC() {
   const config = getConfig();
   const validFrom = new Date().toISOString();
   const validUntil = new Date(Date.now() + (86400 * 1000 * 365)).toISOString();
-  //Cuenta un año desde ahora, no cuenta bisiestos
+
   const doc = {
     "@context": [
       "https://www.w3.org/2018/credentials/v1",
@@ -92,6 +91,7 @@ export async function buildParticipantVC() {
 
 export async function buildLegalRegistrationNumberVC() {
   const config = getConfig();
+
   const requestBody = {
     "@context": [
       "https://registry.lab.gaia-x.eu/development/api/trusted-shape-registry/v1/shapes/jsonld/participant"
@@ -101,8 +101,11 @@ export async function buildLegalRegistrationNumberVC() {
     "gx:vatID": config.vatID,
   };
 
-  const apiBase = "https://registrationnumber.notary.lab.gaia-x.eu/v1-staging/registrationNumberVC";
-  const vcid = config.urlLRN;     // ← URL pública del VC
+  const apiBase =
+    "https://registrationnumber.notary.lab.gaia-x.eu/v1/registrationNumberVC";
+
+  const vcid = config.urlLRN;
+
   const url = `${apiBase}?vcid=${encodeURIComponent(vcid)}`;
 
   const response = await fetch(url, {
@@ -116,11 +119,16 @@ export async function buildLegalRegistrationNumberVC() {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Notary API error (${response.status}): ${errorText}`);
+
+    throw new Error(
+      `Notary API error (${response.status}): ${errorText}`
+    );
   }
 
   const vc = await response.json();
+
   await writeFile(config.pathLRN, vc);
+
   return vc;
 }
 
@@ -128,6 +136,7 @@ export async function buildTermsConditionsVC() {
   const config = getConfig();
   const validFrom = new Date().toISOString();
   const validUntil = new Date(Date.now() + (86400 * 1000 * 365)).toISOString();
+
   const termsAndConditions =
     "The PARTICIPANT signing the Self-Description agrees as follows:\n- " +
     "to update its descriptions about any changes, " +
